@@ -1,0 +1,36 @@
+version: '3.6'
+
+services:
+  api:
+    image: quay.io/go-skynet/local-ai:latest
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/readyz"]
+      interval: 1m
+      timeout: 20m
+      retries: 20
+    ports:
+      - target: 8080
+        published: 8080
+        protocol: tcp
+    environment:
+      - DEBUG=true
+      - MODELS_PATH=/models
+      - 'PRELOAD_MODELS=[{"url": "github:go-skynet/model-gallery/gpt4all-j.yaml", "name": "gpt-3.5-turbo"}]'
+    volumes:
+      - ./models:/models:cached
+    command: ["/usr/bin/local-ai" ]
+    deploy:
+      replicas: 1
+  chatgpt:
+    depends_on:
+      - api
+    image: ghcr.io/mckaywrigley/chatbot-ui:main
+    ports:
+      - target: 3000
+        published: 3000
+        protocol: tcp
+    environment:
+      - 'OPENAI_API_KEY=sk-XXXXXXXXXXXXXXXXXXXX'
+      - 'OPENAI_API_HOST=http://api:8080'
+    deploy:
+      replicas: 1
